@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'plan_trip_screen.dart';
+import '../store/favourite_store.dart';
 
 class DestinationDetailsScreen extends StatelessWidget {
   final String title;
@@ -11,17 +12,18 @@ class DestinationDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isFavourite = FavouriteStore().isFavourite(title);
+
     return Scaffold(
       body: Column(
         children: [
           _topSection(context),
-          Expanded(child: _detailsSection(context)),
+          Expanded(child: _detailsSection(context, isFavourite)),
         ],
       ),
     );
   }
 
-  // 🔹 Top Image Placeholder
   Widget _topSection(BuildContext context) {
     return Stack(
       children: [
@@ -36,8 +38,6 @@ class DestinationDetailsScreen extends StatelessWidget {
             ),
           ),
         ),
-
-        // Back button
         Positioned(
           top: 40,
           left: 16,
@@ -49,8 +49,6 @@ class DestinationDetailsScreen extends StatelessWidget {
             ),
           ),
         ),
-
-        // Location Title
         Positioned(
           bottom: 20,
           left: 16,
@@ -76,8 +74,7 @@ class DestinationDetailsScreen extends StatelessWidget {
     );
   }
 
-  // 🔹 Main Details Section
-  Widget _detailsSection(BuildContext context) {
+  Widget _detailsSection(BuildContext context, bool isFavourite) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -85,32 +82,23 @@ class DestinationDetailsScreen extends StatelessWidget {
         children: [
           _infoBoxes(),
           const SizedBox(height: 20),
-
           const Text(
             "Description",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-
           const Text(
             "Ghandruk is a village development committee in the Kaski "
-            "District of the Gandaki Province of Nepal. It is situated "
-            "at a distance of 32 km north-west to Pokhara.",
+            "District of the Gandaki Province of Nepal.",
             style: TextStyle(color: Colors.grey),
           ),
-
           const Spacer(),
-
-          _bottomButtons(context),
+          _bottomButtons(context, isFavourite),
         ],
       ),
     );
   }
 
-  // 🔹 Info Boxes (Distance, Time, Price)
   Widget _infoBoxes() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -122,25 +110,24 @@ class DestinationDetailsScreen extends StatelessWidget {
     );
   }
 
-  // 🔹 Bottom Action Buttons
-  Widget _bottomButtons(BuildContext context) {
+  Widget _bottomButtons(BuildContext context, bool isFavourite) {
     return Row(
       children: [
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Added to favourites")),
-              );
+            onPressed: () async {
+              if (!isFavourite) {
+                await FavouriteStore().addFavourite(title);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("$title added to favourites")),
+                );
+              }
             },
-            icon: const Icon(Icons.favorite_border),
-            label: const Text("Favourite"),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+            icon: Icon(
+              isFavourite ? Icons.favorite : Icons.favorite_border,
+              color: isFavourite ? Colors.red : null,
             ),
+            label: const Text("Favourite"),
           ),
         ),
         const SizedBox(width: 12),
@@ -150,23 +137,12 @@ class DestinationDetailsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PlanTripScreen(
-                    destination: title,
-                  ),
+                  builder: (_) => PlanTripScreen(destination: title),
                 ),
               );
             },
-
-
             icon: const Icon(Icons.navigation),
             label: const Text("Plan Trip"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
           ),
         ),
       ],
@@ -174,7 +150,6 @@ class DestinationDetailsScreen extends StatelessWidget {
   }
 }
 
-// 🔹 Reusable Info Box Widget
 class _InfoBox extends StatelessWidget {
   final String title;
   final String value;
@@ -195,21 +170,9 @@ class _InfoBox extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
-          ),
+          Text(title, style: const TextStyle(color: Colors.grey)),
         ],
       ),
     );
