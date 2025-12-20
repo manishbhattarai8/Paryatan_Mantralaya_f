@@ -76,17 +76,17 @@ enum Season {
 }
 
 class Destination {
-  final int id;
-  final String name;        // PLACE NAME
-  final String description; // PLACE DESCRIPTION
+  final String id;
   final String location;
   final Category category;
   final double avg_price;
   final double rating;
   final String open_hours;
-  final String imageUrl;
+  final String name; // PLACE NAME
+  final String description; // PLACE DESCRIPTION
   final double latitude;
   final double longitude;
+  final String imageUrl;
   final List<Season> suitable_season;
   final List<Weather> suitable_weather;
   final List<Mood> compatable_moods;
@@ -109,8 +109,20 @@ class Destination {
   });
 
   factory Destination.fromJson(Map<String, dynamic> json) {
+    String id = '';
+    if (json.containsKey('_id')) {
+      final v = json['_id'];
+      if (v is Map && v.containsKey(r'$oid')) {
+        id = v[r'$oid']?.toString() ?? '';
+      } else {
+        id = v.toString();
+      }
+    } else if (json.containsKey('id')) {
+      id = json['id']?.toString() ?? '';
+    }
+  
     return Destination(
-      id: json['id'] ?? 0,
+      id: id,
       name: json['name']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
@@ -126,17 +138,15 @@ class Destination {
           ? (json['rating'] as num).toDouble()
           : 0.0,
       open_hours: json['open_hours']?.toString() ?? '',
-      imageUrl: (json['image_url'] ??
-              json['image'] ??
-              json['imageUrl'])
-          ?.toString() ??
-          '',
       latitude: json['latitude'] != null
           ? (json['latitude'] as num).toDouble()
           : 0.0,
       longitude: json['longitude'] != null
           ? (json['longitude'] as num).toDouble()
           : 0.0,
+      imageUrl:
+          (json['image'] ?? json['image_url'] ?? json['imageUrl'])?.toString() ??
+              '',
       suitable_season: (json['suitable_season'] as List?)
               ?.map((e) => Season.fromString(e.toString()))
               .toList() ??
@@ -150,6 +160,25 @@ class Destination {
               .toList() ??
           [],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (id.isNotEmpty) '_id': {r'$oid': id},
+      'name': name,
+      'description': description,
+      'location': location,
+      'category': category.value,
+      'avg_price': avg_price,
+      'rating': rating,
+      'open_hours': open_hours,
+      'latitude': latitude,
+      'longitude': longitude,
+      'suitable_season': suitable_season.map((e) => e.value).toList(),
+      'suitable_weather': suitable_weather.map((e) => e.value).toList(),
+      'compatable_moods': compatable_moods.map((e) => e.value).toList(),
+      'image': imageUrl,
+    };
   }
 }
 
