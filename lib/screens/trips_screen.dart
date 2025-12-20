@@ -4,15 +4,27 @@ import '../models/trip_model.dart';
 import 'planning_screen.dart';
 import 'ongoing_trip_screen.dart';
 import 'past_trip_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class TripsScreen extends StatelessWidget {
   const TripsScreen({super.key});
+
+  // 🔗 SAME IMAGES AS HOME PAGE
+  static const Map<String, String> locationImages = {
+    "Kathmandu":
+        "https://admin.ntb.gov.np/image-cache/KDS_oy_lt_(1)-1631095017.jpg?p=main&s=3b13becca2e45fb61e28d3207a8aefff",
+    "Bhaktapur":
+        "https://tourguideinnepal.com/wp-content/uploads/2019/11/nagarkot-bhaktapur-day-tour.jpg",
+    "Lalitpur, Patan":
+        "https://happymountainnepal.com/wp-content/uploads/2025/07/image_processing20181221-4-k261ph.jpg",
+    "Pokhara":
+        "https://www.andbeyond.com/wp-content/uploads/sites/5/pokhara-valley-nepal.jpg",
+  };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("My Trips")),
-
       body: ValueListenableBuilder<List<Trip>>(
         valueListenable: TripStore().tripsNotifier,
         builder: (context, trips, _) {
@@ -62,11 +74,11 @@ class TripsScreen extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
 
         if (trips.isEmpty)
           const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+            padding: EdgeInsets.only(bottom: 24),
             child: Text(
               "No trips",
               style: TextStyle(color: Colors.grey),
@@ -75,57 +87,107 @@ class TripsScreen extends StatelessWidget {
         else
           Column(
             children: trips.map((trip) {
-            VoidCallback? onTap;
+              VoidCallback? onTap;
 
-            if (type == _TripType.planned) {
-              onTap = () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PlanningScreen(
-                      destination: trip.destination,
+              if (type == _TripType.planned) {
+                onTap = () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PlanningScreen(destination: trip.destination),
                     ),
-                  ),
-                );
-              };
-            } else if (type == _TripType.ongoing) {
-              onTap = () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => OngoingTripScreen(
-                      destination: trip.destination,
+                  );
+                };
+              } else if (type == _TripType.ongoing) {
+                onTap = () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          OngoingTripScreen(destination: trip.destination),
                     ),
-                  ),
-                );
-              };
-            } else if (type == _TripType.past) {
-              onTap = () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PastTripScreen(
-                      destination: trip.destination,
+                  );
+                };
+              } else if (type == _TripType.past) {
+                onTap = () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PastTripScreen(destination: trip.destination),
                     ),
-                  ),
-                );
-              };
-            }
+                  );
+                };
+              }
 
-              return Card(
-                child: ListTile(
-                  leading: const Icon(Icons.place),
-                  title: Text(trip.destination),
-                  onTap: onTap,
-                  trailing: onTap != null
-                      ? const Icon(Icons.arrow_forward_ios, size: 16)
-                      : null,
+              return GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  height: 140,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl:
+                              locationImages[trip.destination] ?? "",
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) =>
+                              Container(color: Colors.grey.shade300),
+                          errorWidget: (_, __, ___) =>
+                              Container(color: Colors.grey.shade300),
+                        ),
+
+                        // 🌫 DARK OVERLAY
+                        Container(
+                          color: Colors.black.withOpacity(0.45),
+                        ),
+
+                        // 📍 LOCATION NAME
+                        Center(
+                          child: Text(
+                            trip.destination,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+
+                        // ➡ ARROW
+                        Positioned(
+                          right: 14,
+                          bottom: 14,
+                          child: Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             }).toList(),
           ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 28),
       ],
     );
   }
