@@ -18,12 +18,18 @@ class _HomeScreenState extends State<HomeScreen>
   final DestinationService _service = DestinationService();
   final TextEditingController _searchController = TextEditingController();
 
+  final List<String> topLocations = const [
+    "Kathmandu",
+    "Bhaktapur",
+    "Lalitpur",
+    "Pokhara",
+  ];
+
   List<Destination> destinations = [];
   List<Destination> filteredDestinations = [];
 
   bool isLoading = true;
   bool isSearching = false;
-  String? selectedLocation;
 
   @override
   bool get wantKeepAlive => true;
@@ -41,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen>
           "https://tourguideinnepal.com/wp-content/uploads/2019/11/nagarkot-bhaktapur-day-tour.jpg",
     ),
     LocationItem(
-      name: "Lalitpur, Patan",
+      name: "Lalitpur",
       imageUrl:
           "https://happymountainnepal.com/wp-content/uploads/2025/07/image_processing20181221-4-k261ph.jpg",
     ),
@@ -52,11 +58,10 @@ class _HomeScreenState extends State<HomeScreen>
     ),
   ];
 
-  // 📝 LOCATION DESCRIPTIONS
   final Map<String, String> locationDescriptions = const {
     "Kathmandu": "Capital city rich in temples, culture & history",
     "Bhaktapur": "Ancient city famous for heritage & architecture",
-    "Lalitpur, Patan": "Artistic city with monasteries & craftsmanship",
+    "Lalitpur": "Artistic city with monasteries & craftsmanship",
     "Pokhara": "Lakeside city with mountains & adventure",
   };
 
@@ -79,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen>
       filteredDestinations = destinations.where((dest) {
         return dest.name.toLowerCase().contains(query) ||
             dest.description.toLowerCase().contains(query) ||
-            dest.category.toLowerCase().contains(query);
+            dest.category.toString().split('.').last.toLowerCase().contains(query);
       }).toList();
     });
   }
@@ -88,22 +93,14 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final data = await _service.fetchDestinations();
 
-      // 🔥 PRE-CACHE DESTINATION IMAGES
       for (final d in data) {
         if (d.imageUrl.isNotEmpty) {
-          precacheImage(
-            CachedNetworkImageProvider(d.imageUrl),
-            context,
-          );
+          precacheImage(CachedNetworkImageProvider(d.imageUrl), context);
         }
       }
 
-      // 🔥 PRE-CACHE LOCATION IMAGES
       for (final loc in locations) {
-        precacheImage(
-          CachedNetworkImageProvider(loc.imageUrl),
-          context,
-        );
+        precacheImage(CachedNetworkImageProvider(loc.imageUrl), context);
       }
 
       setState(() {
@@ -185,7 +182,8 @@ class _HomeScreenState extends State<HomeScreen>
           hintText: "Search destinations...",
           prefixIcon: Icon(Icons.search),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
@@ -239,11 +237,6 @@ class _HomeScreenState extends State<HomeScreen>
                         CachedNetworkImage(
                           imageUrl: location.imageUrl,
                           fit: BoxFit.cover,
-                          memCacheWidth: 400,
-                          placeholder: (_, __) =>
-                              Container(color: Colors.green.shade200),
-                          errorWidget: (_, __, ___) =>
-                              Container(color: Colors.green.shade200),
                         ),
                         Container(color: Colors.black.withOpacity(0.4)),
                         Padding(
@@ -292,70 +285,140 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  /// ⭐ FINAL TOP DESTINATION DESIGN
   Widget _topDestinationBoxes(BuildContext context) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final excludedCategories = ['restaurant', 'food', 'accomodations'];
-
-    final filtered = (isSearching ? filteredDestinations : destinations)
-        .where((d) => !excludedCategories.contains(d.category.toLowerCase()))
-        .toList()
-      ..sort((a, b) => b.rating.compareTo(a.rating));
+    final excludedCategories = [
+      'restaurant',
+      'food',
+      'accomodations',
+    ];
 
     return Column(
-      children: filtered.take(5).map((dest) {
-        return GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => DestinationDetailsScreen(destination: dest),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: topLocations.map((location) {
+        final locationDestinations = destinations
+            .where((d) =>
+                d.location.toLowerCase() == location.toLowerCase() &&
+                !excludedCategories
+                    .contains(d.category.value))
+            .toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
+
+        if (locationDestinations.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                location,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: CachedNetworkImage(
-                    imageUrl: dest.imageUrl,
-                    width: 50,
-                    height: 50,
-                    memCacheWidth: 100,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(dest.name,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 4),
-                      Text(
-                        dest.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.black54),
+            SizedBox(
+              height: 90,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: locationDestinations.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final dest = locationDestinations[index];
+
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DestinationDetailsScreen(
+                            destination: dest,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 270,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(22),
                       ),
-                    ],
-                  ),
-                ),
-                Text("⭐ ${dest.rating}"),
-              ],
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius:
+                                const BorderRadius.horizontal(
+                              left: Radius.circular(22),
+                            ),
+                            child: Stack(
+                              children: [
+                                CachedNetworkImage(
+                                  imageUrl: dest.imageUrl,
+                                  width: 90,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                                Container(
+                                  width: 90,
+                                  height: double.infinity,
+                                  color:
+                                      Colors.black.withOpacity(0.25),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.only(right: 12),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    dest.name,
+                                    maxLines: 1,
+                                    overflow:
+                                        TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    dest.location,
+                                    maxLines: 1,
+                                    overflow:
+                                        TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
+            const SizedBox(height: 16),
+          ],
         );
       }).toList(),
     );

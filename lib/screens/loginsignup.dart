@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'main_shell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:paryatan_mantralaya_f/config.dart';
 
 class Loginsignup extends StatefulWidget {
   const Loginsignup({super.key});
@@ -64,8 +65,8 @@ class _LoginsignupState extends State<Loginsignup> {
     setState(() => _loading = true);
 
     final url = _isLogin
-        ? 'http://10.10.254.254:8000/login'
-        : 'http://10.10.254.254:8000/register';
+        ? '${API_URL}/login'
+        : '${API_URL}/register';
 
     final bodyMap = _isLogin
         ? {

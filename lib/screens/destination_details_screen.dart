@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/destination_model.dart';
 import '../store/favourite_store.dart';
-import 'plan_trip_screen.dart';
 
-class DestinationDetailsScreen extends StatelessWidget {
+class DestinationDetailsScreen extends StatefulWidget {
   final Destination destination;
 
   const DestinationDetailsScreen({
@@ -12,20 +11,34 @@ class DestinationDetailsScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final isFavourite =
-        FavouriteStore().isFavourite(destination.name);
+  State<DestinationDetailsScreen> createState() =>
+      _DestinationDetailsScreenState();
+}
 
+class _DestinationDetailsScreenState
+    extends State<DestinationDetailsScreen> {
+  late bool isFavourite;
+
+  @override
+  void initState() {
+    super.initState();
+    isFavourite =
+        FavouriteStore().isFavourite(widget.destination.name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
           _topSection(context),
-          Expanded(child: _detailsSection(context, isFavourite)),
+          Expanded(child: _detailsSection()),
         ],
       ),
     );
   }
 
+  // 🔝 TOP IMAGE SECTION
   Widget _topSection(BuildContext context) {
     return Stack(
       children: [
@@ -39,13 +52,15 @@ class DestinationDetailsScreen extends StatelessWidget {
               bottomRight: Radius.circular(30),
             ),
           ),
-          child: destination.imageUrl.isNotEmpty
+          child: widget.destination.imageUrl.isNotEmpty
               ? Image.network(
-                  destination.imageUrl,
+                  widget.destination.imageUrl,
                   fit: BoxFit.cover,
                 )
               : null,
         ),
+
+        // ⬅ BACK BUTTON
         Positioned(
           top: 40,
           left: 16,
@@ -57,15 +72,47 @@ class DestinationDetailsScreen extends StatelessWidget {
             ),
           ),
         ),
+
+        // ❤️ FAVOURITE BUTTON (BOTTOM RIGHT ON IMAGE)
+        Positioned(
+          bottom: 20,
+          right: 16,
+          child: GestureDetector(
+            onTap: _toggleFavourite,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                isFavourite
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                color: isFavourite ? Colors.red : Colors.grey,
+                size: 26,
+              ),
+            ),
+          ),
+        ),
+
+        // 📍 TITLE & LOCATION
         Positioned(
           bottom: 20,
           left: 16,
-          right: 16,
+          right: 70, // space for heart icon
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                destination.name,
+                widget.destination.name,
                 style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
@@ -73,7 +120,7 @@ class DestinationDetailsScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                destination.location,
+                widget.destination.location,
                 style: const TextStyle(color: Colors.white70),
               ),
             ],
@@ -83,7 +130,8 @@ class DestinationDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _detailsSection(BuildContext context, bool isFavourite) {
+  // 📄 DETAILS SECTION
+  Widget _detailsSection() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -98,75 +146,62 @@ class DestinationDetailsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            destination.description,
+            widget.destination.description,
             style: const TextStyle(color: Colors.grey),
           ),
-
-          const Spacer(),
-          _bottomButtons(context, isFavourite),
         ],
       ),
     );
   }
 
+  // ℹ️ INFO BOXES
   Widget _infoBoxes() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _InfoBox(title: "Location", value: destination.location),
-        _InfoBox(title: "Rating", value: "⭐ ${destination.rating}"),
-        _InfoBox(title: "Category", value: destination.category),
+        _InfoBox(
+          title: "Location",
+          value: widget.destination.location,
+        ),
+        _InfoBox(
+          title: "Rating",
+          value: "⭐ ${widget.destination.rating}",
+        ),
+        _InfoBox(
+          title: "Category",
+          value: widget.destination.category.value,
+        ),
       ],
     );
   }
 
-  Widget _bottomButtons(BuildContext context, bool isFavourite) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              if (!isFavourite) {
-                await FavouriteStore()
-                    .addFavourite(destination.name);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        "${destination.name} added to favourites"),
-                  ),
-                );
-              }
-            },
-            icon: Icon(
-              isFavourite
-                  ? Icons.favorite
-                  : Icons.favorite_border,
-              color: isFavourite ? Colors.red : null,
-            ),
-            label: const Text("Favourite"),
-          ),
+  // 🔄 TOGGLE FAVOURITE
+  Future<void> _toggleFavourite() async {
+    if (isFavourite) {
+      await FavouriteStore()
+          .removeFavourite(widget.destination.name);
+    } else {
+      await FavouriteStore()
+          .addFavourite(widget.destination.name);
+    }
+
+    setState(() {
+      isFavourite = !isFavourite;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isFavourite
+              ? "${widget.destination.name} added to favourites"
+              : "${widget.destination.name} removed from favourites",
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      PlanTripScreen(destination: destination.name),
-                ),
-              );
-            },
-            icon: const Icon(Icons.navigation),
-            label: const Text("Plan Trip"),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
+// 🔲 INFO BOX WIDGET
 class _InfoBox extends StatelessWidget {
   final String title;
   final String value;
@@ -193,7 +228,10 @@ class _InfoBox extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
-          Text(title, style: const TextStyle(color: Colors.grey)),
+          Text(
+            title,
+            style: const TextStyle(color: Colors.grey),
+          ),
         ],
       ),
     );

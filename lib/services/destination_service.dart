@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/destination_model.dart';
+import 'package:paryatan_mantralaya_f/config.dart';
 
 class DestinationService {
-  static const String baseUrl = "http://10.10.254.254:8000";
+  static const String baseUrl = API_URL;
 
   Future<List<Destination>> fetchDestinations() async {
     final response = await http.get(

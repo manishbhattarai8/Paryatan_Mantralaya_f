@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:paryatan_mantralaya_f/config.dart';
 
 class RouteService {
   // 👇 Use your PC IP address
-  static const String baseUrl = "http://10.10.254.254:8000";
+  static const String baseUrl = API_URL;
 
   static Future<List<List<double>>> fetchRoute({
     required double startLat,

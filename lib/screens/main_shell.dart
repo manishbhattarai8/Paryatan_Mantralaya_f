@@ -85,6 +85,45 @@ class _MainShellState extends State<MainShell> {
       MaterialPageRoute(builder: (_) => const Loginsignup()),
     );
   }
+Widget _navItem({
+  required IconData icon,
+  required int index,
+}) {
+  final bool isActive = currentIndex == index;
+
+  return GestureDetector(
+    onTap: () {
+      setState(() => currentIndex = index);
+    },
+    behavior: HitTestBehavior.opaque,
+    child: SizedBox(
+      width: 60, // fixed width prevents navbar shift
+      height: 44,
+      child: Center(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          transform: Matrix4.translationValues(
+            0,
+            isActive ? -6 : 0, // 🔼 lift ONLY icon
+            0,
+          ),
+          child: AnimatedScale(
+            scale: isActive ? 1.3 : 1.0, // 🔍 icon enlarge
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            child: Icon(
+              icon,
+              size: 26,
+              color: isActive ? Colors.green : Colors.grey,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -103,29 +142,28 @@ class _MainShellState extends State<MainShell> {
         index: currentIndex,
         children: screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          setState(() => currentIndex = index);
-        },
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            label: 'Trips',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border),
-            label: 'Favourites',
-          ),
-        ],
+
+      // 👇 CUSTOM BOTTOM NAV
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _navItem(icon: Icons.home_outlined, index: 0),
+            _navItem(icon: Icons.map_outlined, index: 1),
+            _navItem(icon: Icons.favorite_border, index: 2),
+          ],
+        ),
       ),
     );
   }
