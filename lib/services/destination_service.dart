@@ -16,7 +16,7 @@ class DestinationService {
 
       // 👇 THIS IS THE KEY LINE
       final List list = decoded['data'];
-      print("sdfsdfdsdsfsf${list.toString()}");
+      // print("sdfsdfdsdsfsf${list.toString()}");
 
       return list
           .map((e) => Destination.fromJson(e))

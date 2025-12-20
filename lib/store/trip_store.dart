@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/trip_model.dart';
+import '../models/destination_model.dart';
 
 class TripStore {
   static final TripStore _instance = TripStore._internal();
@@ -25,6 +26,7 @@ class TripStore {
     if (data != null) {
       final List decoded = jsonDecode(data);
       tripsNotifier.value = decoded.map((e) => Trip.fromJson(e)).toList();
+     
     }
   }
 
@@ -37,23 +39,54 @@ class TripStore {
     await prefs.setString(_storageKey, encoded);
   }
 
-  // 🔹 Add planned trip
+  // 🔹 Add planned trip (keeps public API but stores a Destination list)
   Future<void> addPlannedTrip(String destination) async {
+    final dest = Destination(
+      id: '',
+      name: destination,
+      description: '',
+      location: destination,
+      category: '',
+      rating: 0.0,
+      suitableSeason: const [],
+      suitableWeather: const [],
+      compatableMoods: const [],
+    );
+
     tripsNotifier.value = [
       ...tripsNotifier.value,
-      Trip(destination: destination, status: TripStatus.planned),
+      Trip(destinations: [dest], status: TripStatus.planned),
     ];
     await _save();
   }
 
   Future<void> addOngoingTrip(String destination) async {
-    // Remove any existing trip with the same destination (planned or ongoing)
-    final filtered = tripsNotifier.value.where((t) => t.destination != destination).toList();
+    // Prefer id-based checks when the provided string matches any known
+    // destination id in existing trips; otherwise fall back to name-based
+    // behaviour for backwards compatibility.
+    final isId = tripsNotifier.value.any((t) => t.containsDestinationById(destination));
+
+    // Remove any trip that already contains this destination (by id or name)
+    final filtered = tripsNotifier.value.where((t) {
+      return isId ? !t.containsDestinationById(destination) : !t.containsDestinationByName(destination);
+    }).toList();
+
+    final dest = Destination(
+      id: isId ? destination : '',
+      name: isId ? '' : destination,
+      description: '',
+      location: isId ? '' : destination,
+      category: '',
+      rating: 0.0,
+      suitableSeason: const [],
+      suitableWeather: const [],
+      compatableMoods: const [],
+    );
 
     // Add the new ongoing trip
     tripsNotifier.value = [
       ...filtered,
-      Trip(destination: destination, status: TripStatus.ongoing),
+      Trip(destinations: [dest], status: TripStatus.ongoing),
     ];
 
     await _save();
@@ -61,18 +94,18 @@ class TripStore {
 
   // 🔹 Cancel planned trip
   Future<void> cancelTrip(String destination) async {
-    tripsNotifier.value = tripsNotifier.value
-        .where((t) => t.destination != destination)
-        .toList();
+    final isId = tripsNotifier.value.any((t) => t.containsDestinationById(destination));
+    tripsNotifier.value = tripsNotifier.value.where((t) {
+      return isId ? !t.containsDestinationById(destination) : !t.containsDestinationByName(destination);
+    }).toList();
     await _save();
   }
 
-  // 🔹 Planned → Ongoing
-  Future<void> startTrip(String destination) async {
+  // 🔹 Planned → Ongoing (by trip id)
+  Future<void> startTrip(String tripId) async {
     tripsNotifier.value = tripsNotifier.value.map((trip) {
-      if (trip.destination == destination &&
-          trip.status == TripStatus.planned) {
-        return Trip(destination: trip.destination, status: TripStatus.ongoing);
+      if (trip.id == tripId && trip.status == TripStatus.planned) {
+        return Trip(id: trip.id, destinations: trip.destinations, status: TripStatus.ongoing);
       }
       return trip;
     }).toList();
@@ -81,11 +114,11 @@ class TripStore {
   }
 
   // 🔹 Ongoing → Past  ✅ THIS FIXES YOUR ERROR
-  Future<void> completeTrip(String destination) async {
+  // 🔹 Ongoing → Past (by trip id)
+  Future<void> completeTrip(String tripId) async {
     tripsNotifier.value = tripsNotifier.value.map((trip) {
-      if (trip.destination == destination &&
-          trip.status == TripStatus.ongoing) {
-        return Trip(destination: trip.destination, status: TripStatus.past);
+      if (trip.id == tripId && trip.status == TripStatus.ongoing) {
+        return Trip(id: trip.id, destinations: trip.destinations, status: TripStatus.past);
       }
       return trip;
     }).toList();

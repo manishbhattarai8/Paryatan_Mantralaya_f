@@ -9,6 +9,7 @@ import 'route_map_screen.dart';
 
 class PlanningScreen extends StatefulWidget {
   final String destination;
+  final String tripId;
 
   const PlanningScreen({
     super.key,
