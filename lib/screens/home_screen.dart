@@ -17,20 +17,19 @@ class _HomeScreenState extends State<HomeScreen>
     with AutomaticKeepAliveClientMixin {
   final DestinationService _service = DestinationService();
   final TextEditingController _searchController = TextEditingController();
+
   final List<String> topLocations = const [
     "Kathmandu",
     "Bhaktapur",
-    "Lalitpur, Patan",
+    "Lalitpur",
     "Pokhara",
   ];
-
 
   List<Destination> destinations = [];
   List<Destination> filteredDestinations = [];
 
   bool isLoading = true;
   bool isSearching = false;
-  String? selectedLocation;
 
   @override
   bool get wantKeepAlive => true;
@@ -59,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen>
     ),
   ];
 
-  // 📝 LOCATION DESCRIPTIONS
   final Map<String, String> locationDescriptions = const {
     "Kathmandu": "Capital city rich in temples, culture & history",
     "Bhaktapur": "Ancient city famous for heritage & architecture",
@@ -95,22 +93,14 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final data = await _service.fetchDestinations();
 
-      // 🔥 PRE-CACHE DESTINATION IMAGES
       for (final d in data) {
         if (d.imageUrl.isNotEmpty) {
-          precacheImage(
-            CachedNetworkImageProvider(d.imageUrl),
-            context,
-          );
+          precacheImage(CachedNetworkImageProvider(d.imageUrl), context);
         }
       }
 
-      // 🔥 PRE-CACHE LOCATION IMAGES
       for (final loc in locations) {
-        precacheImage(
-          CachedNetworkImageProvider(loc.imageUrl),
-          context,
-        );
+        precacheImage(CachedNetworkImageProvider(loc.imageUrl), context);
       }
 
       setState(() {
@@ -192,7 +182,8 @@ class _HomeScreenState extends State<HomeScreen>
           hintText: "Search destinations...",
           prefixIcon: Icon(Icons.search),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
@@ -246,11 +237,6 @@ class _HomeScreenState extends State<HomeScreen>
                         CachedNetworkImage(
                           imageUrl: location.imageUrl,
                           fit: BoxFit.cover,
-                          memCacheWidth: 400,
-                          placeholder: (_, __) =>
-                              Container(color: Colors.green.shade200),
-                          errorWidget: (_, __, ___) =>
-                              Container(color: Colors.green.shade200),
                         ),
                         Container(color: Colors.black.withOpacity(0.4)),
                         Padding(
@@ -299,142 +285,138 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-Widget _topDestinationBoxes(BuildContext context) {
-  if (isLoading) {
-    return const Center(child: CircularProgressIndicator());
-  }
+  /// ⭐ FINAL TOP DESTINATION DESIGN
+  Widget _topDestinationBoxes(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  final excludedCategories = ['restaurant', 'food', 'accomodations'];
+    final excludedCategories = ['restaurant', 'food', 'accomodations'];
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: topLocations.map((location) {
-      final locationDestinations = destinations
-          .where((d) =>
-              d.location.toLowerCase() == location.toLowerCase() &&
-              !excludedCategories.contains(d.category.toLowerCase()))
-          .toList()
-        ..sort((a, b) => b.rating.compareTo(a.rating));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: topLocations.map((location) {
+        final locationDestinations = destinations
+            .where((d) =>
+                d.location.toLowerCase() == location.toLowerCase() &&
+                !excludedCategories
+                    .contains(d.category.toLowerCase()))
+            .toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
 
-      if (locationDestinations.isEmpty) {
-        return const SizedBox.shrink();
-      }
+        if (locationDestinations.isEmpty) return const SizedBox.shrink();
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 📍 LOCATION TITLE
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              location,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                location,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
+            SizedBox(
+              height: 90,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: locationDestinations.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final dest = locationDestinations[index];
 
-          // 🧭 HORIZONTAL DESTINATIONS
-          SizedBox(
-            height: 90,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount:
-                  locationDestinations.take(10).length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final dest = locationDestinations[index];
-
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            DestinationDetailsScreen(
-                                destination: dest),
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DestinationDetailsScreen(
+                            destination: dest,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 270,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(22),
                       ),
-                    );
-                  },
-                  child: Container(
-                    width: 220,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        // 🖼 IMAGE
-                        ClipRRect(
-                          borderRadius:
-                              BorderRadius.circular(14),
-                          child: CachedNetworkImage(
-                            imageUrl: dest.imageUrl,
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            memCacheWidth: 120,
-                            placeholder: (_, __) =>
-                                Container(
-                                    color: Colors
-                                        .green.shade200),
-                            errorWidget: (_, __, ___) =>
-                                Container(
-                                    color: Colors
-                                        .green.shade200),
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        // 📍 TEXT
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment:
-                                MainAxisAlignment.center,
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                dest.name,
-                                maxLines: 1,
-                                overflow:
-                                    TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight:
-                                      FontWeight.bold,
-                                  fontSize: 15,
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius:
+                                const BorderRadius.horizontal(
+                              left: Radius.circular(22),
+                            ),
+                            child: Stack(
+                              children: [
+                                CachedNetworkImage(
+                                  imageUrl: dest.imageUrl,
+                                  width: 90,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                dest.location,
-                                maxLines: 1,
-                                overflow:
-                                    TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 13,
+                                Container(
+                                  width: 90,
+                                  height: double.infinity,
+                                  color:
+                                      Colors.black.withOpacity(0.25),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.only(right: 12),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    dest.name,
+                                    maxLines: 1,
+                                    overflow:
+                                        TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    dest.location,
+                                    maxLines: 1,
+                                    overflow:
+                                        TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-
-          const SizedBox(height: 16),
-        ],
-      );
-    }).toList(),
-  );
-}
+            const SizedBox(height: 16),
+          ],
+        );
+      }).toList(),
+    );
+  }
 }
