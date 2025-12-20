@@ -233,25 +233,54 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             },
-            child: Container(
+            child: SizedBox(
               width: 200,
-              decoration: BoxDecoration(
-                color: Colors.green.shade100,
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-              ),
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Container(
-                  margin: const EdgeInsets.all(12),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    dest.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // background image or fallback color
+                    if (dest.imageUrl.isNotEmpty)
+                      Image.network(
+                        dest.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stack) => Container(color: Colors.green.shade100),
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return Container(color: Colors.green.shade100);
+                        },
+                      )
+                    else
+                      Container(color: Colors.green.shade100),
+
+                    // subtle overlay for legibility
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Colors.black.withOpacity(0.35), Colors.transparent],
+                        ),
+                      ),
+                    ),
+
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Container(
+                        margin: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          dest.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -340,10 +369,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   width: 50,
                   height: 50,
+                  clipBehavior: Clip.hardEdge,
+                  
                   decoration: BoxDecoration(
-                    color: Colors.green.shade200,
+                    color: Colors.red.shade200,
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  child: Image.network(dest.imageUrl, fit: BoxFit.cover,),
                 ),
                 const SizedBox(width: 12),
 

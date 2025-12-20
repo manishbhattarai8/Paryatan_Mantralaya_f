@@ -31,12 +31,13 @@ class DestinationDetailsScreen extends StatelessWidget {
           height: 280,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.green.shade300,
+            color: Colors.blue.shade300,
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(30),
               bottomRight: Radius.circular(30),
             ),
           ),
+          // child: Image.network(des),
         ),
         Positioned(
           top: 40,

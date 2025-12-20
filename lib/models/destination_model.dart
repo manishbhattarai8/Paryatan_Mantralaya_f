@@ -5,6 +5,7 @@ class Destination {
   final String location;
   final String category;
   final double rating;
+  final String imageUrl;
 
   Destination({
     required this.id,
@@ -13,6 +14,7 @@ class Destination {
     required this.location,
     required this.category,
     required this.rating,
+    this.imageUrl = '',
   });
 
   factory Destination.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,7 @@ class Destination {
       description: json['description'] ?? '',
       location: json['location'] ?? '',
       category: json['category'] ?? '',
+      imageUrl: (json['image_url'] ?? json['image'] ?? json['imageUrl'])?.toString() ?? '',
       rating: json['rating'] != null
           ? (json['rating'] as num).toDouble()
           : 0.0,
