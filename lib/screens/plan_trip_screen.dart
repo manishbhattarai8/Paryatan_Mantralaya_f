@@ -182,7 +182,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
     final budget = double.tryParse(budgetController.text) ?? 0;
 
     // ✅ CORRECT: Destination object
-    await TripStore().addPlannedTrip(
+    String tripId = await TripStore().addPlannedTrip(
       destination: widget.destination,
       fromDate: fromDate!,
       toDate: toDate!,
@@ -196,6 +196,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
       MaterialPageRoute(
         builder: (_) => PlanningScreen(
           destination: widget.destination.name,
+          tripId: tripId,
           fromDate: fromDate!,
           toDate: toDate!,
           moods: _mapMoodsToEnum(),

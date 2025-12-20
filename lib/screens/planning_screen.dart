@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/destination_model.dart';
 import '../services/recommendation_service.dart';
+import 'package:paryatan_mantralaya_f/store/trip_store.dart';
+import '../models/trip_model.dart';
 
 class PlanningScreen extends StatefulWidget {
+  final String tripId; // Pass trip ID to identify which trip to update
   final String destination;
   final DateTime fromDate;
   final DateTime toDate;
@@ -11,6 +14,7 @@ class PlanningScreen extends StatefulWidget {
 
   const PlanningScreen({
     super.key,
+    required this.tripId,
     required this.destination,
     required this.fromDate,
     required this.toDate,
@@ -25,6 +29,7 @@ class PlanningScreen extends StatefulWidget {
 class _PlanningScreenState extends State<PlanningScreen>
     with SingleTickerProviderStateMixin {
   final RecommendationService recService = RecommendationService();
+  final TripStore tripStore = TripStore();
 
   List<Destination> allPrimary = [];
   List<Destination> allAccommodations = [];
@@ -35,6 +40,7 @@ class _PlanningScreenState extends State<PlanningScreen>
   int recommendedAccommodations = 0;
 
   bool isLoading = false;
+  bool isSaving = false;
   String? error;
 
   late TabController _tabController;
@@ -97,6 +103,70 @@ class _PlanningScreenState extends State<PlanningScreen>
         error = e.toString();
         isLoading = false;
       });
+    }
+  }
+
+  // 🔹 START TRIP - Save and change status to ongoing
+  Future<void> _startTrip() async {
+    setState(() => isSaving = true);
+
+    try {
+      // Save accommodations
+      await tripStore.setAccommodations(
+        tripId: widget.tripId,
+        accommodations: selectedAccommodations,
+      );
+
+      // Save day-wise attractions
+      await tripStore.setDayWiseAttractions(
+        tripId: widget.tripId,
+        dayWiseAttractions: dayWiseAttractions,
+      );
+
+      // Collect all primary attractions from day-wise map
+      final allDayAttractions = dayWiseAttractions.values
+          .expand((list) => list)
+          .toSet()
+          .toList();
+
+      // Save primary attractions
+      await tripStore.setPrimaryAttractions(
+        tripId: widget.tripId,
+        attractions: allDayAttractions,
+      );
+
+      // Change trip status from planned to ongoing
+      await tripStore.startTrip(widget.tripId);
+
+      setState(() => isSaving = false);
+
+      if (mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Trip started successfully! Have a great journey!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Navigate back to home after a short delay
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      setState(() => isSaving = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error starting trip: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -357,6 +427,32 @@ class _PlanningScreenState extends State<PlanningScreen>
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          if (!isLoading && error == null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TextButton.icon(
+                onPressed: isSaving ? null : _startTrip,
+                icon: isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+                        ),
+                      )
+                    : const Icon(Icons.flight_takeoff, color: Colors.teal),
+                label: Text(
+                  isSaving ? 'Starting...' : 'Start Trip',
+                  style: const TextStyle(
+                    color: Colors.teal,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())

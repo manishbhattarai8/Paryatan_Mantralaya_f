@@ -22,6 +22,7 @@ class RecommendationResult {
 
 class RecommendationService {
   final WeatherService weatherService = WeatherService();
+  final ApiService apiService = ApiService();
 
   double haversine(double lat1, double lon1, double lat2, double lon2) {
     const R = 6371.0;
@@ -39,6 +40,21 @@ class RecommendationService {
 
   double _toRadians(double degrees) {
     return degrees * pi / 180;
+  }
+
+  bool isWithinRadius(
+    double lat1,
+    double lon1,
+    Destination destination,
+    double radiusKm,
+  ) {
+    final lat2 = destination.latitude;
+    final lon2 = destination.longitude;
+    
+    if (lat2 == 0.0 || lon2 == 0.0) return false;
+    
+    final distance = haversine(lat1, lon1, lat2, lon2);
+    return distance <= radiusKm;
   }
 
   // Filter attractions within a certain radius of primary attractions
@@ -75,14 +91,13 @@ class RecommendationService {
     return filtered;
   }
 
-Future<RecommendationResult> generateRecommendations({
+  Future<RecommendationResult> generateRecommendations({
     required String location,
     required DateTime fromDate,
     required DateTime toDate,
     required List<Mood> moods,
     required double budget,
   }) async {
-    ApiService apiService = ApiService();
     final placesData = await apiService.getPlacesFromLocation(location);
     final tripDays = toDate.difference(fromDate).inDays + 1;
     List<MapEntry<double, Destination>> primaryAttractions = [];
@@ -236,5 +251,58 @@ Future<RecommendationResult> generateRecommendations({
     }
 
     return tripPlacesPerDay;
+  }
+
+  Future<List<Destination>> recommendRestaurants({
+    required String location,
+    required double latitude,
+    required double longitude,
+    required List<Mood> moods,
+    required double budget,
+  }) async {
+    final placesData = await apiService.getPlacesFromLocation(location);
+    List<MapEntry<double, Destination>> restaurants = [];
+
+    for (final place in placesData) {
+      if (place.category != Category.restaurant) {
+        continue;
+      }
+
+      // Radius check
+      if (!isWithinRadius(latitude, longitude, place, 2)) {
+        continue;
+      }
+
+      double score = 0;
+      for (final mood in moods) {
+        List<Category>? cats = MOOD_TO_CATEGORY[mood];
+        if (cats == null || !cats.contains(place.category)) {
+          continue;
+        }
+        if (place.compatable_moods != null) {
+          for (final compatibleMood in place.compatable_moods!) {
+            if (mood == compatibleMood) {
+              score += 1;
+            }
+          }
+        }
+      }
+
+      if (score > 0 && place.avg_price <= budget) {
+        restaurants.add(MapEntry(score, place));
+      }
+    }
+
+    restaurants.sort((a, b) {
+      final scoreA = a.key + (a.value.rating ?? 0.0);
+      final scoreB = b.key + (b.value.rating ?? 0.0);
+      return scoreB.compareTo(scoreA); // Descending order
+    });
+
+    final finalRestaurants = restaurants
+        .map((e) => e.value)
+        .toList();
+
+    return finalRestaurants;
   }
 }
