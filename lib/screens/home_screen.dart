@@ -4,7 +4,7 @@ import '../models/location_model.dart';
 import '../services/destination_service.dart';
 import 'destination_details_screen.dart';
 import 'location_details_screen.dart';
-
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,7 +13,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with AutomaticKeepAliveClientMixin {
   final DestinationService _service = DestinationService();
   final TextEditingController _searchController = TextEditingController();
 
@@ -24,31 +25,34 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isSearching = false;
   String? selectedLocation;
 
-  // 📍 LOCATIONS (MODEL UNCHANGED)
+  @override
+  bool get wantKeepAlive => true;
+
+  // 📍 LOCATIONS
   final List<LocationItem> locations = const [
     LocationItem(
       name: "Kathmandu",
       imageUrl:
-          "https://images.unsplash.com/photo-1580744083053-59bfa5b2d5c6",
+          "https://admin.ntb.gov.np/image-cache/KDS_oy_lt_(1)-1631095017.jpg?p=main&s=3b13becca2e45fb61e28d3207a8aefff",
     ),
     LocationItem(
       name: "Bhaktapur",
       imageUrl:
-          "https://images.unsplash.com/photo-1601268570936-9cb62b74b5c6",
+          "https://tourguideinnepal.com/wp-content/uploads/2019/11/nagarkot-bhaktapur-day-tour.jpg",
     ),
     LocationItem(
       name: "Lalitpur, Patan",
       imageUrl:
-          "https://images.unsplash.com/photo-1605000797499-95a51c5269ae",
+          "https://happymountainnepal.com/wp-content/uploads/2025/07/image_processing20181221-4-k261ph.jpg",
     ),
     LocationItem(
       name: "Pokhara",
       imageUrl:
-          "https://images.unsplash.com/photo-1590123710436-4216b5b8c72d",
+          "https://www.andbeyond.com/wp-content/uploads/sites/5/pokhara-valley-nepal.jpg",
     ),
   ];
 
-  // 📝 HARD-CODED LOCATION DESCRIPTIONS
+  // 📝 LOCATION DESCRIPTIONS
   final Map<String, String> locationDescriptions = const {
     "Kathmandu": "Capital city rich in temples, culture & history",
     "Bhaktapur": "Ancient city famous for heritage & architecture",
@@ -71,7 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
-
     setState(() {
       filteredDestinations = destinations.where((dest) {
         return dest.name.toLowerCase().contains(query) ||
@@ -84,6 +87,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadDestinations() async {
     try {
       final data = await _service.fetchDestinations();
+
+      // 🔥 PRE-CACHE DESTINATION IMAGES
+      for (final d in data) {
+        if (d.imageUrl.isNotEmpty) {
+          precacheImage(
+            CachedNetworkImageProvider(d.imageUrl),
+            context,
+          );
+        }
+      }
+
+      // 🔥 PRE-CACHE LOCATION IMAGES
+      for (final loc in locations) {
+        precacheImage(
+          CachedNetworkImageProvider(loc.imageUrl),
+          context,
+        );
+      }
+
       setState(() {
         destinations = data;
         filteredDestinations = data;
@@ -107,6 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -114,19 +138,15 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _header(),
-
             if (isSearching) ...[
               const SizedBox(height: 16),
               _searchBar(),
             ],
-
             const SizedBox(height: 20),
-
             if (!isSearching) ...[
               _locationSection(),
               const SizedBox(height: 28),
             ],
-
             _sectionTitle("Top Destinations"),
             const SizedBox(height: 12),
             _topDestinationBoxes(context),
@@ -136,7 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 🔹 HEADER
   Widget _header() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -153,7 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 🔹 SEARCH BAR
   Widget _searchBar() {
     return Container(
       decoration: BoxDecoration(
@@ -173,23 +191,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 📍 LOCATION SECTION WITH DESCRIPTIONS
   Widget _locationSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionTitle("Explore by Location"),
         const SizedBox(height: 14),
-
         SizedBox(
-          height: 190, // ⬆ increased height
+          height: 190,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: locations.length,
             separatorBuilder: (_, __) => const SizedBox(width: 18),
             itemBuilder: (context, index) {
               final location = locations[index];
-              final isSelected = selectedLocation == location.name;
 
               return GestureDetector(
                 onTap: () {
@@ -204,9 +219,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 },
-
                 child: Container(
-                  width: 180, // ⬆ increased width
+                  width: 180,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
@@ -222,23 +236,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        // 🖼 Location image
-                        Image.network(
-                          location.imageUrl,
+                        CachedNetworkImage(
+                          imageUrl: location.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
+                          memCacheWidth: 400,
+                          placeholder: (_, __) =>
+                              Container(color: Colors.green.shade200),
+                          errorWidget: (_, __, ___) =>
                               Container(color: Colors.green.shade200),
                         ),
-
-                        // 🌫 Dark overlay
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          color: isSelected
-                              ? Colors.black.withOpacity(0.6)
-                              : Colors.black.withOpacity(0.4),
-                        ),
-
-                        // 📍 Text content
+                        Container(color: Colors.black.withOpacity(0.4)),
                         Padding(
                           padding: const EdgeInsets.all(14),
                           child: Column(
@@ -250,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 17, // ⬆ bigger
+                                  fontSize: 17,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -260,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 13, // ⬆ bigger
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
@@ -278,53 +285,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-  // 🔹 SECTION TITLE
   Widget _sectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-      ),
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
     );
   }
 
-  // 🔹 TOP DESTINATIONS
   Widget _topDestinationBoxes(BuildContext context) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final excludedCategories = [
-      'restaurant',
-      'food',
-      'accomodations',
-    ];
+    final excludedCategories = ['restaurant', 'food', 'accomodations'];
 
-    final sourceList = isSearching ? filteredDestinations : destinations;
-
-    final filtered = sourceList.where((dest) {
-      if (excludedCategories.contains(dest.category.toLowerCase())) {
-        return false;
-      }
-
-      if (selectedLocation != null &&
-          dest.location.toLowerCase() !=
-              selectedLocation!.toLowerCase()) {
-        return false;
-      }
-
-      return true;
-    }).toList()
+    final filtered = (isSearching ? filteredDestinations : destinations)
+        .where((d) => !excludedCategories.contains(d.category.toLowerCase()))
+        .toList()
       ..sort((a, b) => b.rating.compareTo(a.rating));
-
-    if (filtered.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(20),
-        child: Center(child: Text("No destinations found")),
-      );
-    }
 
     return Column(
       children: filtered.take(5).map((dest) {
@@ -333,8 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    DestinationDetailsScreen(destination: dest),
+                builder: (_) => DestinationDetailsScreen(destination: dest),
               ),
             );
           },
@@ -349,38 +326,32 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    dest.imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: dest.imageUrl,
                     width: 50,
                     height: 50,
+                    memCacheWidth: 100,
                     fit: BoxFit.cover,
                   ),
                 ),
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        dest.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
+                      Text(dest.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 4),
                       Text(
                         dest.description,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(color: Colors.black54),
+                        style: const TextStyle(color: Colors.black54),
                       ),
                     ],
                   ),
                 ),
-
                 Text("⭐ ${dest.rating}"),
               ],
             ),

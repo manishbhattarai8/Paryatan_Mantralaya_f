@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/location_model.dart';
 import 'plan_trip_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class LocationDetailsScreen extends StatelessWidget {
   final LocationItem location;
@@ -38,12 +39,15 @@ class LocationDetailsScreen extends StatelessWidget {
               bottomRight: Radius.circular(30),
             ),
           ),
-          child: Image.network(
-            location.imageUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                Container(color: Colors.green.shade200),
-          ),
+          child: CachedNetworkImage(
+          imageUrl: location.imageUrl,
+          fit: BoxFit.cover,
+          placeholder: (context, url) =>
+              Container(color: Colors.green.shade200),
+          errorWidget: (context, url, error) =>
+              Container(color: Colors.green.shade200),
+        ),
+
         ),
 
         Positioned(
