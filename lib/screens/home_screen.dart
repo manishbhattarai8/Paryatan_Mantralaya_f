@@ -12,13 +12,67 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final DestinationService _service = DestinationService();
+  final TextEditingController _searchController = TextEditingController();
   List<Destination> destinations = [];
+  List<Destination> filteredDestinations = [];
   bool isLoading = true;
+  bool isSearching = false;
 
   @override
   void initState() {
     super.initState();
     _loadDestinations();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      if (_searchController.text.isEmpty) {
+        filteredDestinations = destinations;
+      } else {
+        final query = _searchController.text.toLowerCase();
+        
+        // Separate matches by priority with scoring
+        final exactTitleMatches = <Destination>[];
+        final startsWithMatches = <Destination>[];
+        final titleContainsMatches = <Destination>[];
+        final otherMatches = <Destination>[];
+        
+        for (var dest in destinations) {
+          final nameLower = dest.name.toLowerCase();
+          
+          if (nameLower == query) {
+            // Exact match has highest priority
+            exactTitleMatches.add(dest);
+          } else if (nameLower.startsWith(query)) {
+            // Starts with query has second priority
+            startsWithMatches.add(dest);
+          } else if (nameLower.contains(query)) {
+            // Contains in title has third priority
+            titleContainsMatches.add(dest);
+          } else if (dest.description.toLowerCase().contains(query) ||
+              dest.category.toLowerCase().contains(query)) {
+            // Description/category matches last
+            otherMatches.add(dest);
+          }
+        }
+        
+        // Combine in priority order
+        filteredDestinations = [
+          ...exactTitleMatches,
+          ...startsWithMatches,
+          ...titleContainsMatches,
+          ...otherMatches
+        ];
+      }
+    });
   }
 
   Future<void> _loadDestinations() async {
@@ -33,12 +87,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         destinations = data;
+        filteredDestinations = data;
         isLoading = false;
       });
     } catch (e) {
       debugPrint("ERROR FETCHING DESTINATIONS: $e");
       setState(() => isLoading = false);
     }
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      isSearching = !isSearching;
+      if (!isSearching) {
+        _searchController.clear();
+        filteredDestinations = destinations;
+      }
+    });
   }
 
   @override
@@ -50,12 +115,18 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _header(),
+            if (isSearching) ...[
+              const SizedBox(height: 16),
+              _searchBar(),
+            ],
             const SizedBox(height: 20),
-            _categories(),
-            const SizedBox(height: 20),
-            _featuredBoxes(context),
-            const SizedBox(height: 30),
-            _sectionTitle("Top Destinations"),
+            if (!isSearching) ...[
+              _categories(),
+              const SizedBox(height: 20),
+              _featuredBoxes(context),
+              const SizedBox(height: 30),
+            ],
+            _sectionTitle(isSearching ? "Search Results" : "Top Destinations"),
             const SizedBox(height: 12),
             _topDestinationBoxes(context),
           ],
@@ -68,13 +139,47 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _header() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: const [
-        Text(
+      children: [
+        const Text(
           "Discover",
           style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
         ),
-        Icon(Icons.search, size: 26),
+        IconButton(
+          icon: Icon(isSearching ? Icons.close : Icons.search, size: 26),
+          onPressed: _toggleSearch,
+        ),
       ],
+    );
+  }
+
+  // 🔹 Search Bar
+  Widget _searchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: _searchController,
+        autofocus: true,
+        decoration: InputDecoration(
+          hintText: "Search destinations...",
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+        ),
+      ),
     );
   }
 
@@ -202,10 +307,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (destinations.isEmpty) {
-      return const Text("No destinations available");
-    }
-
     // ❌ Categories to exclude
     final excludedCategories = [
       'restaurant',
@@ -213,19 +314,38 @@ class _HomeScreenState extends State<HomeScreen> {
       'accomodations',
     ];
 
+    // ✅ Use filtered destinations when searching, otherwise use all
+    final destinationsToShow = isSearching ? filteredDestinations : destinations;
+
     // ✅ Filter + sort
-    final topDestinations = destinations
+    final topDestinations = destinationsToShow
         .where((dest) =>
             !excludedCategories.contains(dest.category.toLowerCase()))
-        .toList()
-      ..sort((a, b) => b.rating.compareTo(a.rating));
+        .toList();
 
-    if (topDestinations.isEmpty) {
-      return const Text("No top destinations available");
+    if (!isSearching) {
+      topDestinations.sort((a, b) => b.rating.compareTo(a.rating));
     }
 
+    if (topDestinations.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text(
+            isSearching
+                ? "No destinations found matching '${_searchController.text}'"
+                : "No destinations available",
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    final displayCount = isSearching ? topDestinations.length : 5;
+
     return Column(
-      children: topDestinations.take(5).map((dest) {
+      children: topDestinations.take(displayCount).map((dest) {
         return GestureDetector(
           onTap: () {
             Navigator.push(
@@ -291,5 +411,4 @@ class _HomeScreenState extends State<HomeScreen> {
       }).toList(),
     );
   }
-
 }
