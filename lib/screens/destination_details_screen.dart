@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/destination_model.dart';
 import '../store/favourite_store.dart';
-import 'plan_trip_screen.dart';
 
 class DestinationDetailsScreen extends StatefulWidget {
   final Destination destination;
@@ -33,12 +32,13 @@ class _DestinationDetailsScreenState
       body: Column(
         children: [
           _topSection(context),
-          Expanded(child: _detailsSection(context)),
+          Expanded(child: _detailsSection()),
         ],
       ),
     );
   }
 
+  // 🔝 TOP IMAGE SECTION
   Widget _topSection(BuildContext context) {
     return Stack(
       children: [
@@ -59,6 +59,8 @@ class _DestinationDetailsScreenState
                 )
               : null,
         ),
+
+        // ⬅ BACK BUTTON
         Positioned(
           top: 40,
           left: 16,
@@ -70,10 +72,42 @@ class _DestinationDetailsScreenState
             ),
           ),
         ),
+
+        // ❤️ FAVOURITE BUTTON (BOTTOM RIGHT ON IMAGE)
+        Positioned(
+          bottom: 20,
+          right: 16,
+          child: GestureDetector(
+            onTap: _toggleFavourite,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                isFavourite
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                color: isFavourite ? Colors.red : Colors.grey,
+                size: 26,
+              ),
+            ),
+          ),
+        ),
+
+        // 📍 TITLE & LOCATION
         Positioned(
           bottom: 20,
           left: 16,
-          right: 16,
+          right: 70, // space for heart icon
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -96,7 +130,8 @@ class _DestinationDetailsScreenState
     );
   }
 
-  Widget _detailsSection(BuildContext context) {
+  // 📄 DETAILS SECTION
+  Widget _detailsSection() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -114,53 +149,27 @@ class _DestinationDetailsScreenState
             widget.destination.description,
             style: const TextStyle(color: Colors.grey),
           ),
-
-          const Spacer(),
-          _bottomButtons(context),
         ],
       ),
     );
   }
 
+  // ℹ️ INFO BOXES
   Widget _infoBoxes() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _InfoBox(title: "Location", value: widget.destination.location),
-        _InfoBox(title: "Rating", value: "⭐ ${widget.destination.rating}"),
-        _InfoBox(title: "Category", value: widget.destination.category),
-      ],
-    );
-  }
-
-  Widget _bottomButtons(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _toggleFavourite,
-            icon: Icon(
-              isFavourite ? Icons.favorite : Icons.favorite_border,
-              color: isFavourite ? Colors.red : null,
-            ),
-            label: Text(isFavourite ? "Unfavourite" : "Favourite"),
-          ),
+        _InfoBox(
+          title: "Location",
+          value: widget.destination.location,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      PlanTripScreen(destination: widget.destination.name),
-                ),
-              );
-            },
-            icon: const Icon(Icons.navigation),
-            label: const Text("Plan Trip"),
-          ),
+        _InfoBox(
+          title: "Rating",
+          value: "⭐ ${widget.destination.rating}",
+        ),
+        _InfoBox(
+          title: "Category",
+          value: widget.destination.category,
         ),
       ],
     );
@@ -192,6 +201,7 @@ class _DestinationDetailsScreenState
   }
 }
 
+// 🔲 INFO BOX WIDGET
 class _InfoBox extends StatelessWidget {
   final String title;
   final String value;
@@ -218,7 +228,10 @@ class _InfoBox extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
-          Text(title, style: const TextStyle(color: Colors.grey)),
+          Text(
+            title,
+            style: const TextStyle(color: Colors.grey),
+          ),
         ],
       ),
     );
