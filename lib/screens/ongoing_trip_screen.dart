@@ -30,10 +30,10 @@ class OngoingTripScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            _infoCard("Status", "Ongoing"),
-            _infoCard("Started On", "Not tracked"),
-            _infoCard("Transport", "Not specified"),
-            _infoCard("Budget", "Not specified"),
+            // _infoCard("Status", "Ongoing"),
+            // _infoCard("Started On", "Not tracked"),
+            // _infoCard("Transport", "Not specified"),
+            // _infoCard("Budget", "Not specified"),
 
             const Spacer(),
 
