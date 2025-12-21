@@ -4,7 +4,6 @@ import '../models/destination_model.dart';
 import 'planning_screen.dart';
 
 class PlanTripScreen extends StatefulWidget {
-  /// ✅ MUST BE Destination (NOT String)
   final Destination destination;
 
   const PlanTripScreen({
@@ -36,7 +35,23 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Plan Trip")),
+      backgroundColor: Colors.white,
+
+      // ✅ WHITE APP BAR (NO BLACK, NO PURPLE)
+      appBar: AppBar(
+        title: const Text(
+          "Plan Trip",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+        surfaceTintColor: Colors.white,
+      ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -51,10 +66,12 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
               "What kind of trip do you want?",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
+
             _moodChips(),
 
             const SizedBox(height: 24),
+
             const Text(
               "Budget",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -64,20 +81,22 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
             TextField(
               controller: budgetController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              cursorColor: Colors.black,
+              decoration: InputDecoration(
                 hintText: "Enter your budget",
-                border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
 
             const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _completeTrip,
-                child: const Text("Complete"),
-              ),
-            ),
+
+            _completeButton(),
           ],
         ),
       ),
@@ -85,7 +104,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
   }
 
   // --------------------------------------------------
-  // HELPERS
+  // DATE PICKER
   // --------------------------------------------------
 
   Widget _datePicker(String label, DateTime? date, VoidCallback onTap) {
@@ -95,7 +114,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade400),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -105,21 +124,32 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
                   ? label
                   : "${date.day}/${date.month}/${date.year}",
             ),
-            const Icon(Icons.calendar_today),
+            const Icon(Icons.calendar_today, color: Colors.black),
           ],
         ),
       ),
     );
   }
 
+  // --------------------------------------------------
+  // MOOD CHIPS (NO PURPLE)
+  // --------------------------------------------------
+
   Widget _moodChips() {
     return Wrap(
-      spacing: 8,
+      spacing: 10,
+      runSpacing: 10,
       children: moods.map((mood) {
         final selected = selectedMoods.contains(mood);
         return ChoiceChip(
           label: Text(mood),
           selected: selected,
+          selectedColor: Colors.black,
+          backgroundColor: Colors.grey.shade200,
+          labelStyle: TextStyle(
+            color: selected ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
           onSelected: (_) {
             setState(() {
               selected
@@ -132,12 +162,72 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
     );
   }
 
+  // --------------------------------------------------
+  // COMPLETE BUTTON (DARK, NOT PURPLE)
+  // --------------------------------------------------
+
+  Widget _completeButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: GestureDetector(
+        onTap: _completeTrip,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF111111),
+                Color(0xFF2E2E2E),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.30),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: const Text(
+            "Complete",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --------------------------------------------------
+  // DATE PICK LOGIC (NO PURPLE)
+  // --------------------------------------------------
+
   Future<void> _pickDate(bool isFrom) async {
     final picked = await showDatePicker(
       context: context,
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
       initialDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.black,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -146,6 +236,10 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
       });
     }
   }
+
+  // --------------------------------------------------
+  // MOOD MAPPING
+  // --------------------------------------------------
 
   List<Mood> _mapMoodsToEnum() {
     return selectedMoods.map((m) {
@@ -168,6 +262,10 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
     }).toList();
   }
 
+  // --------------------------------------------------
+  // COMPLETE TRIP
+  // --------------------------------------------------
+
   void _completeTrip() async {
     if (fromDate == null ||
         toDate == null ||
@@ -181,8 +279,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
 
     final budget = double.tryParse(budgetController.text) ?? 0;
 
-    // ✅ CORRECT: Destination object
-    String tripId = await TripStore().addPlannedTrip(
+    final tripId = await TripStore().addPlannedTrip(
       destination: widget.destination,
       fromDate: fromDate!,
       toDate: toDate!,
@@ -190,7 +287,6 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
       budget: budget,
     );
 
-    // 🔁 PlanningScreen still expects String
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

@@ -105,14 +105,45 @@ class LocationDetailsScreen extends StatelessWidget {
 
           SizedBox(
             width: double.infinity,
-            height: 54,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.map),
-              label: const Text(
-                "Plan Trip",
-                style: TextStyle(fontSize: 16),
+            height: 56,
+            child: GestureDetector(
+              onTap: () => _goToPlanTrip(context),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF1E1E1E),
+                      Color(0xFF3A3A3A),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.travel_explore, color: Colors.white, size: 22),
+                    SizedBox(width: 10),
+                    Text(
+                      "Plan Trip",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              onPressed: () => _goToPlanTrip(context),
             ),
           ),
         ],
